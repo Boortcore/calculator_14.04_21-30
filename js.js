@@ -17,7 +17,7 @@ class Calculator {
 
     this._calc.onmousedown = this._moveCalculator.bind(this._calc);
   }
-
+ 
 
   _render(){
 
