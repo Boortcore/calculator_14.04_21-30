@@ -13,7 +13,7 @@ class Calculator {
 
     this._display = this._calc.querySelector('#display');
 
-    this._calc.addEventListener('click', this._start.bind(this));
+    this._calc.addEventListener('click', this._startCalculate.bind(this));
 
     this._calc.onmousedown = this._moveCalculator.bind(this._calc);
   }
@@ -55,25 +55,25 @@ class Calculator {
       </tr>`;
   }
 
-  _start(e) {
-    let target = e.target;
-    let button = target.textContent;
+  _startCalculate(e) {
+    let button = e.target.textContent;
+    let validValuesNumbers = ['1','2','3','4','5','6','7','8','9','0','.'];
+    let validValuesOperators = ['+','-','*','/'];
+    if (e.target === this._calc ) return;
 
-    if (target == this._calc ) return;
-
-    if ((!isNaN(+button) || button == '.')) {
+    if (~validValuesNumbers.indexOf(button)) {
       this._enterNumber(e);
     }
 
-    if ((isNaN(+button) && button != '.')) {
+    if (~validValuesOperators.indexOf(button)) {
+      console.log(button)
       this._enterOperator(e);
     }
 
   }
 
   _enterNumber(e) {
-    let target = e.target;
-    let button = target.textContent;
+    let button = e.target.textContent;
 
     if (this._enterEqualBefore) {
       this._clearMemory()
@@ -84,8 +84,13 @@ class Calculator {
       this._clearInput = false;
     }
 
-    if (button != '.' && this._display.value == '0') this._display.value = '';
-    if (button == '.' && ~this._display.value.indexOf('.')) return;
+    if (button != '.' && this._display.value === '0') {
+      this._display.value = '';
+    }
+
+    if (button === '.' && ~this._display.value.indexOf('.')) {
+      return;
+    }
 
     this._display.value += button;
     this._argument = +this._display.value;
@@ -93,19 +98,19 @@ class Calculator {
   }
 
   _enterOperator(e) {
-    let target = e.target;
-    let button = target.textContent;
-    if (button == 'C') {
+
+    let button = e.target.textContent;
+    if (button === 'C') {
       this._clearMemory();
       return;
     }
 
-    if (button == '+/-' && this._display.value != 0) {
+    if (button === '+/-' && this._display.value != 0) {
       this._changeSign(e);
       return;
     }
 
-    if (button == '=') {
+    if (button === '=') {
       this._processEqualSign(e);
       return;
     }
@@ -114,10 +119,12 @@ class Calculator {
   }
 
   _processOperator(e) {
-    let target = e.target;
-    this._operator = target.textContent;
 
-    if (!this._enterArgumentBefore) this._argument = +this._display.value;
+    this._operator = e.target.textContent;
+
+    if (!this._enterArgumentBefore) {
+      this._argument = +this._display.value;
+    }
 
     if (this._enterArgumentBefore && this._previousOperator) {
       this._calculate(this._previousOperator);
@@ -138,28 +145,35 @@ class Calculator {
     this._clearInput = true;
     this._enterEqualBefore = true;
 
-    if (this._previousOperator) this._calculate(this._previousOperator);
+    if (this._previousOperator) {
+      this._calculate(this._previousOperator);
+    }
   }
 
   _calculate(operator) {
-    switch (operator) {
+    /*switch (operator) {
       case '+':
         this._result = this._result + +this._argument;
-        this._display.value = this._result;
         break;
       case '-':
         this._result = this._result - +this._argument;
-        this._display.value = this._result;
         break;
       case '/':
         this._result = this._result / +this._argument;
-        this._display.value = this._result;
         break;
       case '*':
         this._result = this._result * +this._argument;
-        this._display.value = this._result;
         break;
-    }
+    }*/
+
+    let operators = {
+      '+': function () { this._result = this._result + +this._argument;},
+      '-': function () { this._result = this._result - +this._argument;},
+      '/': function () { this._result = this._result / +this._argument;},
+      '*': function () { this._result = this._result * +this._argument;}
+    };
+    operators[operator].call(this);
+    this._display.value = this._result;
   }
 
   _clearMemory() {
@@ -170,13 +184,11 @@ class Calculator {
   }
 
   _changeSign() {
-    if (this._display.value > 0) this._display.value = -this._display.value; //
-    else this._display.value = +this._display.value.slice(1);
-    this._argument = +this._display.value;
-    // this._display.value > 0 ? this._display.value = -this._display.value: +this._display.value.slice(1); ???
+     this._display.value = - this._display.value;
   }
 
   _moveCalculator(e) {
+
     let self = this;
     let coords = getCoords(this);
     let shiftX = e.pageX - coords.left;
@@ -185,15 +197,13 @@ class Calculator {
     this.style.position = 'absolute';
     moveAt.call(this, e);
 
-    this.style.zIndex = 1000; // над другими элементами
-
     function moveAt(e) {
       this.style.left = e.pageX - shiftX + 'px';
       this.style.top = e.pageY - shiftY + 'px';
     }
 
     document.onmousemove = function(e) {
-      moveAt.call(self, e);
+      moveAt.call(self, e); // здесь используется self
     };
 
     this.onmouseup = function() {
@@ -203,6 +213,14 @@ class Calculator {
 
     this.ondragstart = function() {
       return false;
+    };
+
+    this.onfocus = function () {
+      this.style.zIndex = 1000;
+    };
+
+    this.onblur = function () {
+      this.style.zIndex = 500;
     };
 
     function getCoords(elem) {
