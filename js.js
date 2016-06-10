@@ -58,7 +58,7 @@ class Calculator {
   _startCalculate(e) {
     let button = e.target.textContent;
     let validValuesNumbers = ['1','2','3','4','5','6','7','8','9','0','.'];
-    let validValuesOperators = ['+','-','*','/'];
+    let validValuesOperators = ['+','-','*','/','='];
     if (e.target === this._calc ) return;
 
     if (~validValuesNumbers.indexOf(button)) {
