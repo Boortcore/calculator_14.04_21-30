@@ -6,14 +6,14 @@ class Calculator {
     this._argument = null;
     this._result = 0;
     this._clearInput = false;
-    this._enterArgumentBefore = false;
-    this._enterEqualBefore = false;
+    this._argumentIsPressedBefore = false;
+    this._equalSignIsPressedBefore = false;
 
     this._render();
 
     this._display = this._calc.querySelector('#display');
 
-    this._calc.addEventListener('click', this._start.bind(this));
+    this._calc.addEventListener('click', this._startCalculate.bind(this));
 
     this._calc.onmousedown = this._moveCalculator.bind(this._calc);
   }
@@ -55,27 +55,25 @@ class Calculator {
       </tr>`;
   }
 
-  _start(e) {
-    let target = e.target;
-    let button = target.textContent;
+  _startCalculate(e) {
+    let button = e.target.textContent;
+    let validValuesNumbers = ['1','2','3','4','5','6','7','8','9','0','.'];
+    let validValuesOperators = ['+','-','*','/','=', 'C','+/-'];
+    if (e.target === this._calc ) return;
 
-    if (target == this._calc ) return;
-
-    if ((!isNaN(+button) || button == '.')) {
-      this._enterNumber(e);
+    if (~validValuesNumbers.indexOf(button)) {
+      this._enterNumber(button);
     }
 
-    if ((isNaN(+button) && button != '.')) {
-      this._enterOperator(e);
+    if (~validValuesOperators.indexOf(button)) {
+      this._enterOperator(button);
     }
 
   }
 
-  _enterNumber(e) {
-    let target = e.target;
-    let button = target.textContent;
+  _enterNumber(btn) {
 
-    if (this._enterEqualBefore) {
+    if (this._equalSignIsPressedBefore) {
       this._clearMemory()
     }
 
@@ -84,99 +82,95 @@ class Calculator {
       this._clearInput = false;
     }
 
-    if (button != '.' && this._display.value == '0') this._display.value = '';
-    if (button == '.' && ~this._display.value.indexOf('.')) return;
+    if (btn != '.' && this._display.value === '0') {
+      this._display.value = '';
+    }
 
-    this._display.value += button;
+    if (btn === '.' && ~this._display.value.indexOf('.')) {
+      return;
+    }
+
+    this._display.value += btn;
     this._argument = +this._display.value;
-    this._enterArgumentBefore = true;
+    this._argumentIsPressedBefore = true;
   }
 
-  _enterOperator(e) {
-    let target = e.target;
-    let button = target.textContent;
-    if (button == 'C') {
+  _enterOperator(btn) {
+
+    if (btn === 'C') {
       this._clearMemory();
       return;
     }
 
-    if (button == '+/-' && this._display.value != 0) {
-      this._changeSign(e);
+    if (btn === '+/-' && this._display.value != 0) {
+      this._changeSign();
       return;
     }
 
-    if (button == '=') {
-      this._processEqualSign(e);
+    if (btn === '=') {
+      this._processEqualSign();
       return;
     }
 
-    this._processOperator(e)
+    this._processOperator(btn)
   }
 
-  _processOperator(e) {
-    let target = e.target;
-    this._operator = target.textContent;
+  _processOperator(btn) {
 
-    if (!this._enterArgumentBefore) this._argument = +this._display.value;
+    this._operator = btn;
 
-    if (this._enterArgumentBefore && this._previousOperator) {
+    if (!this._argumentIsPressedBefore) {
+      this._argument = +this._display.value;
+    }
+
+    if (this._argumentIsPressedBefore && this._previousOperator) {
       this._calculate(this._previousOperator);
     }
 
     this._result = +this._display.value;
     this._previousOperator = this._operator;
 
-    this._enterArgumentBefore = false;
+    this._argumentIsPressedBefore = false;
     this._clearInput = true;
-    this._enterEqualBefore = false;
+    this._equalSignIsPressedBefore = false;
 
   }
 
   _processEqualSign() {
 
-    this._enterArgumentBefore = false;
+    this._argumentIsPressedBefore = false;
     this._clearInput = true;
-    this._enterEqualBefore = true;
+    this._equalSignIsPressedBefore = true;
 
-    if (this._previousOperator) this._calculate(this._previousOperator);
+    if (this._previousOperator) {
+      this._calculate(this._previousOperator);
+    }
   }
 
   _calculate(operator) {
-    switch (operator) {
-      case '+':
-        this._result = this._result + +this._argument;
-        this._display.value = this._result;
-        break;
-      case '-':
-        this._result = this._result - +this._argument;
-        this._display.value = this._result;
-        break;
-      case '/':
-        this._result = this._result / +this._argument;
-        this._display.value = this._result;
-        break;
-      case '*':
-        this._result = this._result * +this._argument;
-        this._display.value = this._result;
-        break;
-    }
+    let operators = {
+      '+': function () { this._result +=  +this._argument;},
+      '-': function () { this._result -=  +this._argument;},
+      '/': function () { this._result /=  +this._argument;},
+      '*': function () { this._result *=  +this._argument;}
+    };
+    operators[operator].call(this);
+    this._display.value = this._result;
   }
 
   _clearMemory() {
     this._display.value = 0;
     this._result = 0;
-    this._enterEqualBefore = false;
+    this._equalSignIsPressedBefore = false;
     this._previousOperator = null;
   }
 
   _changeSign() {
-    if (this._display.value > 0) this._display.value = -this._display.value; //
-    else this._display.value = +this._display.value.slice(1);
-    this._argument = +this._display.value;
-    // this._display.value > 0 ? this._display.value = -this._display.value: +this._display.value.slice(1); ???
+     this._result = this._display.value = - this._display.value;
   }
 
   _moveCalculator(e) {
+
     let self = this;
     let coords = getCoords(this);
     let shiftX = e.pageX - coords.left;
@@ -185,15 +179,13 @@ class Calculator {
     this.style.position = 'absolute';
     moveAt.call(this, e);
 
-    this.style.zIndex = 1000; // над другими элементами
-
     function moveAt(e) {
       this.style.left = e.pageX - shiftX + 'px';
       this.style.top = e.pageY - shiftY + 'px';
     }
 
     document.onmousemove = function(e) {
-      moveAt.call(self, e);
+      moveAt.call(self, e); // здесь используется self
     };
 
     this.onmouseup = function() {
