@@ -6,8 +6,8 @@ class Calculator {
     this._argument = null;
     this._result = 0;
     this._clearInput = false;
-    this._enterArgumentBefore = false;
-    this._enterEqualBefore = false;
+    this._argumentIsPressedBefore = false;
+    this._equalSignIsPressedBefore = false;
 
     this._render();
 
@@ -58,24 +58,22 @@ class Calculator {
   _startCalculate(e) {
     let button = e.target.textContent;
     let validValuesNumbers = ['1','2','3','4','5','6','7','8','9','0','.'];
-    let validValuesOperators = ['+','-','*','/','=', 'C'];
+    let validValuesOperators = ['+','-','*','/','=', 'C','+/-'];
     if (e.target === this._calc ) return;
 
     if (~validValuesNumbers.indexOf(button)) {
-      this._enterNumber(e);
+      this._enterNumber(button);
     }
 
     if (~validValuesOperators.indexOf(button)) {
-      console.log(button);
-      this._enterOperator(e);
+      this._enterOperator(button);
     }
 
   }
 
-  _enterNumber(e) {
-    let button = e.target.textContent;
+  _enterNumber(btn) {
 
-    if (this._enterEqualBefore) {
+    if (this._equalSignIsPressedBefore) {
       this._clearMemory()
     }
 
@@ -84,66 +82,65 @@ class Calculator {
       this._clearInput = false;
     }
 
-    if (button != '.' && this._display.value === '0') {
+    if (btn != '.' && this._display.value === '0') {
       this._display.value = '';
     }
 
-    if (button === '.' && ~this._display.value.indexOf('.')) {
+    if (btn === '.' && ~this._display.value.indexOf('.')) {
       return;
     }
 
-    this._display.value += button;
+    this._display.value += btn;
     this._argument = +this._display.value;
-    this._enterArgumentBefore = true;
+    this._argumentIsPressedBefore = true;
   }
 
-  _enterOperator(e) {
+  _enterOperator(btn) {
 
-    let button = e.target.textContent;
-    if (button === 'C') {
+    if (btn === 'C') {
       this._clearMemory();
       return;
     }
 
-    if (button === '+/-' && this._display.value != 0) {
-      this._changeSign(e);
+    if (btn === '+/-' && this._display.value != 0) {
+      this._changeSign();
       return;
     }
 
-    if (button === '=') {
-      this._processEqualSign(e);
+    if (btn === '=') {
+      this._processEqualSign();
       return;
     }
 
-    this._processOperator(e)
+    this._processOperator(btn)
   }
 
-  _processOperator(e) {
+  _processOperator(btn) {
 
-    this._operator = e.target.textContent;
+    this._operator = btn;
 
-    if (!this._enterArgumentBefore) {
+    if (!this._argumentIsPressedBefore) {
       this._argument = +this._display.value;
     }
 
-    if (this._enterArgumentBefore && this._previousOperator) {
+    if (this._argumentIsPressedBefore && this._previousOperator) {
       this._calculate(this._previousOperator);
     }
 
     this._result = +this._display.value;
     this._previousOperator = this._operator;
 
-    this._enterArgumentBefore = false;
+    this._argumentIsPressedBefore = false;
     this._clearInput = true;
-    this._enterEqualBefore = false;
+    this._equalSignIsPressedBefore = false;
 
   }
 
   _processEqualSign() {
 
-    this._enterArgumentBefore = false;
+    this._argumentIsPressedBefore = false;
     this._clearInput = true;
-    this._enterEqualBefore = true;
+    this._equalSignIsPressedBefore = true;
 
     if (this._previousOperator) {
       this._calculate(this._previousOperator);
@@ -151,26 +148,11 @@ class Calculator {
   }
 
   _calculate(operator) {
-    /*switch (operator) {
-      case '+':
-        this._result = this._result + +this._argument;
-        break;
-      case '-':
-        this._result = this._result - +this._argument;
-        break;
-      case '/':
-        this._result = this._result / +this._argument;
-        break;
-      case '*':
-        this._result = this._result * +this._argument;
-        break;
-    }*/
-
     let operators = {
-      '+': function () { this._result = this._result + +this._argument;},
-      '-': function () { this._result = this._result - +this._argument;},
-      '/': function () { this._result = this._result / +this._argument;},
-      '*': function () { this._result = this._result * +this._argument;}
+      '+': function () { this._result +=  +this._argument;},
+      '-': function () { this._result -=  +this._argument;},
+      '/': function () { this._result /=  +this._argument;},
+      '*': function () { this._result *=  +this._argument;}
     };
     operators[operator].call(this);
     this._display.value = this._result;
@@ -179,12 +161,12 @@ class Calculator {
   _clearMemory() {
     this._display.value = 0;
     this._result = 0;
-    this._enterEqualBefore = false;
+    this._equalSignIsPressedBefore = false;
     this._previousOperator = null;
   }
 
   _changeSign() {
-     this._display.value = - this._display.value;
+     this._result = this._display.value = - this._display.value;
   }
 
   _moveCalculator(e) {
@@ -213,14 +195,6 @@ class Calculator {
 
     this.ondragstart = function() {
       return false;
-    };
-
-    this.onfocus = function () {
-      this.style.zIndex = 1000;
-    };
-
-    this.onblur = function () {
-      this.style.zIndex = 500;
     };
 
     function getCoords(elem) {
