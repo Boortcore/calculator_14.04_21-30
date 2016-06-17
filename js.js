@@ -3,69 +3,43 @@ class Calculator {
     this._calc = calc;
     this._previousOperator = null;
     this._operator = null;
-    this._argument = null;
+    this._argument = 0;
     this._result = 0;
     this._clearInput = false;
     this._argumentIsPressedBefore = false;
     this._equalSignIsPressedBefore = false;
 
-    this._render();
+    this._render.apply(this._calc);
 
-    this._display = this._calc.querySelector('#display');
+    this._display = this._calc.querySelector('input[data-display]');
 
     this._calc.addEventListener('click', this._startCalculate.bind(this));
 
     this._calc.onmousedown = this._moveCalculator.bind(this._calc);
+    this._display.addEventListener('input',function() {
+      return false;
+    })
+
   }
  
 
   _render(){
+    let content = document.querySelector('#contentOfCalculator');
+    this.innerHTML = content.innerText;
+    console.log(content.innerHTML);
 
-    this._calc.innerHTML = `
-      <tr>
-        <td colspan="5" >
-        <input type="text" id="display" value='0'>
-        </td>
-      </tr>
-      <tr>
-        <td>7</td>
-        <td>8</td>
-        <td>9</td>
-        <td>/</td>
-        <td>+/-</td>
-      </tr>
-      <tr>
-        <td>4</td>
-        <td>5</td>
-        <td>6</td>
-        <td>*</td>
-        <td>C</td>
-      </tr>
-      <tr>
-        <td>1</td>
-        <td>2</td>
-        <td>3</td>
-        <td>-</td>
-        <td rowspan="2">=</td>
-      </tr>
-      <tr>
-        <td colspan="2">0</td>
-        <td>.</td>
-      <td>+</td>
-      </tr>`;
   }
 
   _startCalculate(e) {
-    let button = e.target.textContent;
+    let button = e.target.dataset.number || e.target.dataset.operator;
     let validValuesNumbers = ['1','2','3','4','5','6','7','8','9','0','.'];
-    let validValuesOperators = ['+','-','*','/','=', 'C','+/-'];
+   /* let validValuesOperators = ['+','-','*','/','=', 'C'];*/
     if (e.target === this._calc ) return;
 
     if (~validValuesNumbers.indexOf(button)) {
       this._enterNumber(button);
     }
-
-    if (~validValuesOperators.indexOf(button)) {
+    else /*if (~validValuesOperators.indexOf(button)) */{
       this._enterOperator(button);
     }
 
@@ -166,37 +140,36 @@ class Calculator {
   }
 
   _changeSign() {
-     this._result = this._display.value = - this._display.value;
+    if(this._equalSignIsPressedBefore) {
+      this._result = this._display.value = - this._display.value;
+    }
+    else {
+      this._argument = this._display.value = - this._display.value;
+    }
   }
 
   _moveCalculator(e) {
 
-    let self = this;
     let coords = getCoords(this);
     let shiftX = e.pageX - coords.left;
     let shiftY = e.pageY - coords.top;
 
     this.style.position = 'absolute';
+
     moveAt.call(this, e);
+
+    let bindMoveAt = moveAt.bind(this);
+
+    document.addEventListener('mousemove', bindMoveAt);
+
+    this.addEventListener('mouseup', function() {
+      document.removeEventListener('mousemove', bindMoveAt);
+    });
 
     function moveAt(e) {
       this.style.left = e.pageX - shiftX + 'px';
       this.style.top = e.pageY - shiftY + 'px';
     }
-
-    document.onmousemove = function(e) {
-      moveAt.call(self, e); // здесь используется self
-    };
-
-    this.onmouseup = function() {
-      document.onmousemove = null;
-      this.onmouseup = null;
-    };
-
-    this.ondragstart = function() {
-      return false;
-    };
-
     function getCoords(elem) {
       let box = elem.getBoundingClientRect();
 
